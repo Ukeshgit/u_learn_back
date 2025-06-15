@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\carbon;
 
 class UserController extends Controller
 {
@@ -18,12 +19,12 @@ class UserController extends Controller
     {
         try {
             $validateUser = Validator::make($request->all(), [
-                // 'avatar'=>'required',
-                // 'type'=>'required',
-                // 'open_id'=>'required',
+                'avatar'=>'required',
+                'type'=>'required',
+                'open_id'=>'required',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
-                'password'=>'required'
+                
                 
             ]);
 
@@ -34,7 +35,27 @@ class UserController extends Controller
                     'errors' => $validateUser->errors()
                 ], 422);
             }
+            //validated will have all the user field values
+            //we can save in the databases
+            $validated=$validateUser->validated();
+            $map=[];
+            //Email,phone,google,facebook or apple
+            $map['type']=$validated['type'];
+            $map['open_id']=$validated['open_id'];
+            $user=User::where($map)->first();
+            //whether already login or not
+            //Empty means doesnot exist
+            //then save the data in the database for the first time
+            if (empty($user->id)) {
+                //this certain user is not ever present in the database
+                //our job is to assign the user in the database
+                $validated['token']=md5(uniqid.rand(10000,99999));
+                //user first time login
+                $validated['created_at']=carbon::now();
+                //returns the id of the user after saving in the database
+                $userID=User::insertGetId($validated);
 
+            }
             $user = User::create([
                 'name'     => $request->name,
                 'email'    => $request->email,
