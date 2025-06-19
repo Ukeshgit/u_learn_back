@@ -49,11 +49,24 @@ class UserController extends Controller
             if (empty($user->id)) {
                 //this certain user is not ever present in the database
                 //our job is to assign the user in the database
-                $validated['token']=md5(uniqid.rand(10000,99999));
+                
+                //This token is like userid
+                $validated['token']=md5(uniqid().rand(10000,99999));
                 //user first time login
                 $validated['created_at']=carbon::now();
                 //returns the id of the user after saving in the database
-                $userID=User::insertGetId($validated);
+                $userID=User::insertGetId($validated);//only returns the userId
+
+                $userInfo=User::where('id',"=",$userID);//returns the whole information of the particular id of user 
+                $accessToken=$userInfo->createToken(uniqid())->plainTextToken;
+                $userInfo->access_token=$accessToken;
+                
+            return response()->json([
+                'status' => true,
+                'message' => 'User created successfully',
+                'data'=>$userInfo,
+
+            ], 201);
 
             }
             $user = User::create([
