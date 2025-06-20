@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\carbon;
+use Illuminate\Support\Carbon;
 
 class UserController extends Controller
 {
@@ -19,13 +19,12 @@ class UserController extends Controller
     {
         try {
             $validateUser = Validator::make($request->all(), [
-                'avatar'=>'required',
-                'type'=>'required',
-                'open_id'=>'required',
+                'avatar' => 'required',
+                'type' => 'required',
+                'open_id' => 'required',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
-                
-                
+                'password' => 'required'
             ]);
 
             if ($validateUser->fails()) {
@@ -35,52 +34,53 @@ class UserController extends Controller
                     'errors' => $validateUser->errors()
                 ], 422);
             }
-            //validated will have all the user field values
-            //we can save in the databases
-            $validated=$validateUser->validated();
-            $map=[];
-            //Email,phone,google,facebook or apple
-            $map['type']=$validated['type'];
-            $map['open_id']=$validated['open_id'];
-            $user=User::where($map)->first();
-            //whether already login or not
-            //Empty means doesnot exist
-            //then save the data in the database for the first time
-            if (empty($user->id)) {
-                //this certain user is not ever present in the database
-                //our job is to assign the user in the database
-                
-                //This token is like userid
-                $validated['token']=md5(uniqid().rand(10000,99999));
-                //user first time login
-                $validated['created_at']=carbon::now();
-                //returns the id of the user after saving in the database
-                $userID=User::insertGetId($validated);//only returns the userId
 
-                $userInfo=User::where('id',"=",$userID);//returns the whole information of the particular id of user 
-                $accessToken=$userInfo->createToken(uniqid())->plainTextToken;
-                $userInfo->access_token=$accessToken;
-                
-            return response()->json([
-                'status' => true,
-                'message' => 'User created successfully',
-                'data'=>$userInfo,
+            $validated = $validateUser->validated();
 
-            ], 201);
+            // Check if user exists based on type and open_id (e.g., for social login)
+            $map = [
+                'email'   => $validated['email'],      // check by email
+                'type'    => $validated['type'],       // optionally keep this
+                'open_id' => $validated['open_id']     // optionally keep this
+            ];
+            
+            $existingUser = User::where($map)->first();
+        
 
+            if (!$existingUser) {
+                // Create new user
+                $validated['token'] = md5(uniqid() . rand(10000, 99999));
+                $validated['created_at'] = Carbon::now();
+                $validated['password'] = Hash::make($validated['password']);
+
+                // Insert and retrieve ID
+                $userID = User::insertGetId($validated);
+                $userInfo = User::find($userID);
+
+                // Generate personal access token
+                $accessToken = $userInfo->createToken(uniqid())->plainTextToken;
+                $userInfo->access_token = $accessToken;
+
+                // Save token in DB
+                User::where('id', $userID)->update(['access_token' => $accessToken]);
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'User created successfully',
+                    'user' => $userInfo
+                ], 201);
             }
-            $user = User::create([
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'password' => Hash::make($request->password)
-            ]);
+
+            // If user already exists (e.g., already logged in before with same social login)
+            $accessToken = $existingUser->createToken(uniqid())->plainTextToken;
+            $existingUser->access_token = $accessToken;
 
             return response()->json([
                 'status' => true,
-                'message' => 'User created successfully',
-                'user' => $user,
-                'token' => $user->createToken("API TOKEN")->plainTextToken
-            ], 201);
+                'message' => 'User already exists, returning existing user info',
+                'user' => $existingUser,
+                'token' => $accessToken
+            ], 200);
 
         } catch (\Throwable $th) {
             return response()->json([
