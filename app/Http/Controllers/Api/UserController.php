@@ -74,6 +74,8 @@ class UserController extends Controller
             // If user already exists (e.g., already logged in before with same social login)
             $accessToken = $existingUser->createToken(uniqid())->plainTextToken;
             $existingUser->access_token = $accessToken;
+            User:where('open_id','=', validated['open_id'])->update(['access_token' => $accessToken]);
+
 
             return response()->json([
                 'status' => true,
