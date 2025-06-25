@@ -15,7 +15,7 @@ class UserController extends Controller
     /**
      * Register a new user
      */
-    public function createUser(Request $request)
+    public function login(Request $request)
     {
         try {
             $validateUser = Validator::make($request->all(), [
@@ -96,44 +96,44 @@ class UserController extends Controller
     /**
      * Login the user
      */
-    public function loginUser(Request $request)
-    {
-        try {
-            $validateUser = Validator::make($request->all(), [
-                'email' => 'required|email',
-                'password' => 'required'
-            ]);
+    // public function loginUser(Request $request)
+    // {
+    //     try {
+    //         $validateUser = Validator::make($request->all(), [
+    //             'email' => 'required|email',
+    //             'password' => 'required'
+    //         ]);
 
-            if ($validateUser->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validateUser->errors()
-                ], 422);
-            }
+    //         if ($validateUser->fails()) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Validation error',
+    //                 'errors' => $validateUser->errors()
+    //             ], 422);
+    //         }
 
-            if (!Auth::attempt($request->only('email', 'password'))) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Invalid email or password'
-                ], 401);
-            }
+    //         if (!Auth::attempt($request->only('email', 'password'))) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Invalid email or password'
+    //             ], 401);
+    //         }
 
-            $user = User::where('email', $request->email)->first();
+    //         $user = User::where('email', $request->email)->first();
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User logged in successfully',
-                'user' => $user,
-                'token' => $user->createToken("API TOKEN")->plainTextToken
-            ], 200);
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'User logged in successfully',
+    //             'user' => $user,
+    //             'token' => $user->createToken("API TOKEN")->plainTextToken
+    //         ], 200);
 
-        } catch (\Throwable $th) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Something went wrong',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Something went wrong',
+    //             'error' => $th->getMessage()
+    //         ], 500);
+    //     }
+    // }
 }
