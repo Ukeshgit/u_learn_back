@@ -17,6 +17,7 @@ class UserController extends Controller
      */
     public function login(Request $request)
     {
+      
         try {
             $validateUser = Validator::make($request->all(), [
                 'avatar' => 'required',
